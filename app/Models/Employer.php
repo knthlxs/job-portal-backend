@@ -47,4 +47,10 @@ class Employer extends Model
     public function post() {
         return $this->hasMany(Post::class);
      }
+
+     public function applications()
+{
+    return $this->hasManyThrough(Application::class, Post::class);
+}
+
 }
