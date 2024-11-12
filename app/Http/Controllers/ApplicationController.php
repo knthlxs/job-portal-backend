@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Application;
 use App\Http\Requests\StoreApplicationRequest;
 use App\Http\Requests\UpdateApplicationRequest;
+use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -86,6 +87,9 @@ class ApplicationController extends Controller implements HasMiddleware
         );
 
         return ['application' => $application, 'employee' => $employee];
+
+
+         
     }
 
     /**
@@ -94,14 +98,40 @@ class ApplicationController extends Controller implements HasMiddleware
     public function show(Application $application)
     {
         // // Check if user is authorized
-        $response = $this->checkEmployer();
-        if ($response) {
-            return $response; // Return the error response if the user is not authorized
-        }
-        Gate::authorize('modify', $application); // Employer who owns the job post can access who apply in the job post
+        // $response = $this->checkEmployer();
+        // if ($response) {
+        //     return $response; // Return the error response if the user is not authorized
+        // }
+        // Gate::authorize('modify', $application); // Employer who owns the job post can access who apply in the job post
 
-        // $employee = Auth::user(); // Retrieve the authenticated employee user
-        return ['application' => $application];
+        // // $employee = Auth::user(); // Retrieve the authenticated employee user
+        // return ['application' => $application];
+
+        // Check if user is authorized
+    $response = $this->checkEmployer();
+    if ($response) {
+        return $response; // Return the error response if the user is not authorized
+    }
+
+    // Get the authenticated employer
+    $employer = Auth::user();
+
+    // Verify that the post belongs to the authenticated employer
+    $post = Post::where('id', $application->post_id)->where('employer_id', $employer->id)->first();
+    if (!$post) {
+        return ['error' => 'You are not authorized to view applications for this post since you do not own it.'];
+    }
+
+    // Retrieve all applications for the specified post
+    $applications = Application::with('employee', 'post')
+        ->where('post_id', $application->post_id)
+        ->get();
+
+    return [
+        // 'post' => $post,
+        'applications' => $applications,
+        // 'employer'=>$employer
+    ];
     }
 
     /**
